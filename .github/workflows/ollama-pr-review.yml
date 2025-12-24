@@ -619,14 +619,7 @@ jobs:
             exit 1
           fi
 
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          # Use CI_GITHUB_TOKEN to allow commits to trigger workflows
-          token: ${{ secrets.CI_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
-
-      - name: Get PR number
+      - name: Get PR info
         id: pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -646,10 +639,12 @@ jobs:
           HEAD_REF=$(gh pr view "$PR_NUM" --json headRefName -q '.headRefName')
           echo "head_ref=$HEAD_REF" >> $GITHUB_OUTPUT
 
-      - name: Checkout PR branch
-        env:
-          HEAD_REF: ${{ steps.pr.outputs.head_ref }}
-        run: git checkout "$HEAD_REF"
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.pr.outputs.head_ref }}
+          token: ${{ secrets.CI_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Collect all AI feedback
         id: feedback
