@@ -40,7 +40,7 @@ jobs:
   # ============================================
   initial-review:
     name: Initial Code Review
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     outputs:
       pr_number: ${{ github.event.pull_request.number }}
@@ -48,15 +48,18 @@ jobs:
     
     steps:
       - name: Check required secrets
+        id: check_secrets
         env:
           OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
         run: |
           if [[ -z "$OLLAMA_API_KEY" ]]; then
-            echo "::error::OLLAMA_API_KEY secret is not configured"
-            exit 1
+            echo "missing_secrets=true" >> $GITHUB_OUTPUT
+            echo "::warning::OLLAMA_API_KEY secret is not configured, skipping review"
+            exit 0
           fi
 
       - name: Checkout repository
+        if: steps.check_secrets.outputs.missing_secrets != 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -65,12 +68,14 @@ jobs:
           token: ${{ secrets.CI_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Get PR diff
+        if: steps.check_secrets.outputs.missing_secrets != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh pr diff ${{ github.event.pull_request.number }} --color=never > /tmp/pr_diff.txt
 
       - name: Generate structured review
+        if: steps.check_secrets.outputs.missing_secrets != 'true'
         id: review
         env:
           OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
@@ -166,7 +171,7 @@ jobs:
           echo "auto_apply=$(jq -r '.auto_apply' /tmp/review.json)" >> $GITHUB_OUTPUT
 
       - name: Apply safe fixes
-        if: steps.review.outputs.auto_apply == 'true'
+        if: steps.review.outputs.auto_apply == 'true' && steps.check_secrets.outputs.missing_secrets != 'true'
         run: |
           jq -c '.fixes[]' /tmp/review.json | while read -r fix; do
             FILE=$(echo "$fix" | jq -r '.file')
@@ -192,13 +197,14 @@ jobs:
           done
 
       - name: Commit fixes
-        if: steps.review.outputs.auto_apply == 'true'
+        if: steps.review.outputs.auto_apply == 'true' && steps.check_secrets.outputs.missing_secrets != 'true'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "fix: auto-apply safe improvements (Ollama)"
           branch: ${{ github.head_ref }}
 
       - name: Submit review
+        if: steps.check_secrets.outputs.missing_secrets != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -231,6 +237,7 @@ jobs:
             -f body="$BODY" -f event="$EVENT" || gh pr comment ${{ github.event.pull_request.number }} --body "$BODY"
 
       - name: Upload review artifact
+        if: steps.check_secrets.outputs.missing_secrets != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ollama-review
@@ -442,7 +449,7 @@ jobs:
   copilot-autofix:
     name: Apply Copilot Autofix
     needs: initial-review
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     
     steps:
@@ -600,26 +607,31 @@ jobs:
     # Triggers on any AI bot feedback INCLUDING our own (github-actions[bot])
     # Loop prevention is handled in the "Collect all AI feedback" step by filtering out resolution summaries
     if: |
-      (github.event_name == 'pull_request_review' && 
-       contains(fromJSON('["github-actions[bot]","gemini-code-assist[bot]","copilot[bot]","amazon-q-developer[bot]","coderabbitai[bot]","cursor[bot]","github-advanced-security[bot]"]'), github.actor)) ||
-      (github.event_name == 'pull_request_review_comment' &&
-       contains(fromJSON('["github-actions[bot]","gemini-code-assist[bot]","copilot[bot]","amazon-q-developer[bot]","coderabbitai[bot]","cursor[bot]","github-advanced-security[bot]"]'), github.event.comment.user.login)) ||
-      (github.event_name == 'issue_comment' && 
-       github.event.issue.pull_request &&
-       contains(fromJSON('["github-actions[bot]","gemini-code-assist[bot]","copilot[bot]","amazon-q-developer[bot]","coderabbitai[bot]","cursor[bot]","github-advanced-security[bot]"]'), github.event.comment.user.login))
+      github.actor != 'dependabot[bot]' && (
+        (github.event_name == 'pull_request_review' && 
+         contains(fromJSON('["github-actions[bot]","gemini-code-assist[bot]","copilot[bot]","amazon-q-developer[bot]","coderabbitai[bot]","cursor[bot]","github-advanced-security[bot]"]'), github.actor)) ||
+        (github.event_name == 'pull_request_review_comment' &&
+         contains(fromJSON('["github-actions[bot]","gemini-code-assist[bot]","copilot[bot]","amazon-q-developer[bot]","coderabbitai[bot]","cursor[bot]","github-advanced-security[bot]"]'), github.event.comment.user.login)) ||
+        (github.event_name == 'issue_comment' && 
+         github.event.issue.pull_request &&
+         contains(fromJSON('["github-actions[bot]","gemini-code-assist[bot]","copilot[bot]","amazon-q-developer[bot]","coderabbitai[bot]","cursor[bot]","github-advanced-security[bot]"]'), github.event.comment.user.login))
+      )
     runs-on: ubuntu-latest
     
     steps:
       - name: Check required secrets
+        id: check_secrets
         env:
           OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
         run: |
           if [[ -z "$OLLAMA_API_KEY" ]]; then
-            echo "::error::OLLAMA_API_KEY secret is not configured"
-            exit 1
+            echo "missing_secrets=true" >> $GITHUB_OUTPUT
+            echo "::warning::OLLAMA_API_KEY secret is not configured, skipping feedback monitoring"
+            exit 0
           fi
 
       - name: Checkout repository
+        if: steps.check_secrets.outputs.missing_secrets != 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
