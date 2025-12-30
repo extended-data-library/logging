@@ -1,40 +1,44 @@
-# Agent Instructions for lifecyclelogging
+# Extended Data Library - Agentic Instructions
 
 ## Overview
+The **Extended Data Library** is a collection of high-performance data processing libraries and connectors. This organization uses AI-powered automation for CI/CD, code review, and issue triage.
 
-Lifecycle-aware logging utilities for Python.
-
-## Before Starting
-
-```bash
-cat memory-bank/activeContext.md
-```
-
-## Development Commands
+## CRITICAL: GitHub Authentication
+ALWAYS use the `GH_TOKEN` or `GITHUB_TOKEN` provided in the environment. For organization-wide operations, ensure you have the appropriate permissions.
 
 ```bash
-# Install dependencies
-uv sync --extra tests
-
-# Run tests
-uv run pytest tests/ -v
-
-# Lint
-uvx ruff check src/ tests/
-uvx ruff format src/ tests/
-
-# Build
-uv build
+# Example: List PRs using gh CLI
+gh pr list
 ```
 
-## Commit Messages
+## Development Standards
+- **Python**: Use `uv` for dependency management. Follow PEP 8. Use `ruff` for linting and formatting.
+- **Node.js**: Use `npm`. Use `eslint` for linting.
+- **Documentation**: All repositories must maintain high-quality documentation in the `docs/` directory.
 
-Use conventional commits:
-- `feat(logging): new feature` → minor
-- `fix(logging): bug fix` → patch
+## Architecture Patterns
+- **Connectors**: All connectors should extend the base classes provided in `vendor-connectors`.
+- **Inputs**: Use the `inputs` library for type-safe configuration.
+- **Logging**: Use the `logging` library for standardized output.
+- **Automation**: Managed by the [Extended Data Control Center](https://github.com/extended-data-library/control-center).
 
-## Important Notes
+## AI Orchestration
+- **Ecosystem Connector**: Every repository includes an `.github/workflows/ecosystem-connector.yml` that delegates tasks to AI agents.
+- **Cursor Rules**: Check `.cursor/rules/` for repo-specific AI instructions. Standardized rules cover PR workflows and fundamentals.
+- **Memory Bank**: Use the `memory-bank/` directory to track session context and progress.
 
-- Use absolute imports (`from lifecyclelogging...`)
-- Include `from __future__ import annotations`
-- Type hints required
+## Common Commands
+```bash
+# Python
+uv sync
+uv run pytest
+uv run ruff check .
+
+# Node.js
+npm install
+npm test
+npm run lint
+```
+
+## Documentation Sync
+Documentation is built automatically and pushed to `extended-data-library.github.io`. Ensure your `docs/` are up to date.
