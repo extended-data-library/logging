@@ -1,152 +1,45 @@
-# @extended-data-library/logging
+# Org-Specific Overrides
 
-A comprehensive logging utility for managing application lifecycle logs, combining the power of Python's `logging` with rich output formatting.
+Place files here to override enterprise defaults from jbcom/control-center.
 
-[![PyPI version](https://img.shields.io/pypi/v/lifecyclelogging.svg)](https://pypi.org/project/lifecyclelogging/)
-[![Python versions](https://img.shields.io/pypi/pyversions/lifecyclelogging.svg)](https://pypi.org/project/lifecyclelogging/)
-[![Documentation](https://img.shields.io/badge/docs-github.io-blue.svg)](https://extendeddata.dev)
-[![License](https://img.shields.io/pypi/l/lifecyclelogging.svg)](https://github.com/extended-data-library/logging/blob/main/LICENSE)
-[![GitHub](https://img.shields.io/badge/github-repo-black.svg)](https://github.com/extended-data-library/logging)
+## Directory Structure
 
-## 🏢 Enterprise Context
+```
+repository-files/
+├── always-sync/          # From enterprise (don't edit)
+├── initial-only/         # From enterprise (don't edit)  
+├── python/               # From enterprise (don't edit)
+├── nodejs/               # From enterprise (don't edit)
+├── go/                   # From enterprise (don't edit)
+├── rust/                 # From enterprise (don't edit)
+├── terraform/            # From enterprise (don't edit)
+└── org-overrides/        # YOUR ORG CUSTOMIZATIONS HERE
+    ├── .github/
+    │   └── workflows/    # Org-specific workflows
+    ├── .cursor/
+    │   └── rules/        # Org-specific Cursor rules
+    ├── CLAUDE.md         # Org-specific Claude instructions
+    └── AGENTS.md         # Org-specific agent instructions
+```
 
-**Extended Data** is the Infrastructure & Libs division of the [jbcom enterprise](https://jbcom.github.io). This logging library is part of a coherent suite of specialized tools, sharing a unified design system and interconnected with sibling organizations like [Agentic](https://agentic.dev) and [Strata](https://strata.game).
+## Merge Order
 
-## Installation
+When syncing to repos, files are applied in this order:
+1. Enterprise `always-sync/` (base)
+2. Language-specific rules (python/, nodejs/, etc.)
+3. **Org overrides** (this directory - wins on conflicts)
+4. `initial-only/` (only if file doesn't exist)
 
+## Examples
+
+### Override CI workflow for your org
 ```bash
-pip install lifecyclelogging
+cp repository-files/always-sync/.github/workflows/ci.yml \
+   repository-files/org-overrides/.github/workflows/ci.yml
+# Then edit ci.yml with org-specific changes
 ```
 
-## Features
-
-- Configurable console and file logging outputs
-- Rich formatting for enhanced readability
-- Message storage with context and storage markers
-- Verbosity controls with bypass markers
-- Case-insensitive level filtering for allowed/denied storage rules
-- JSON data attachment support
-- Type-safe implementation
-- Seamless integration with existing logging systems
-- Automatic Gunicorn logger integration
-
-## Project Goals
-
-- Provide a batteries-included logging helper that stays compatible with modern Python releases
-- Keep configuration ergonomic while remaining type-safe and explicit
-- Offer sensible defaults that work locally and in containerized runtimes
-- Deliver reliable automation through testing, linting, and release workflows
-
-## Basic Usage
-
-```python
-from lifecyclelogging import Logging
-
-# Initialize logger
-logger = Logging(
-    enable_console=True,  # Enable console output
-    enable_file=True,     # Enable file output
-    logger_name="my_app"
-)
-
-# Basic logging
-logger.logged_statement("Basic message", log_level="info")
-
-# With context marker
-logger.logged_statement(
-    "Message with context",
-    context_marker="STARTUP",
-    log_level="info"
-)
-
-# With JSON data
-logger.logged_statement(
-    "Message with data",
-    json_data={"key": "value"},
-    log_level="debug"
-)
-```
-
-## Advanced Features
-
-### Verbosity Control
-
-```python
-logger = Logging(
-    enable_verbose_output=True,
-    verbosity_threshold=2
-)
-
-# Only logged if verbosity threshold allows
-logger.logged_statement(
-    "Detailed debug info",
-    verbose=True,
-    verbosity=2,
-    log_level="debug"
-)
-```
-
-### Verbosity Bypass Helpers
-
-```python
-logger.register_verbosity_bypass_marker("IMPORTANT")
-
-# Will be logged regardless of verbosity settings
-logger.logged_statement(
-    "Critical info",
-    context_marker="IMPORTANT",
-    verbose=True,
-    verbosity=5,
-    log_level="debug"
-)
-```
-
-### Message Storage
-
-```python
-# Store message under a marker
-logger.logged_statement(
-    "Important event",
-    storage_marker="EVENTS",
-    log_level="info"
-)
-
-# Access stored messages
-events = logger.stored_messages["EVENTS"]
-```
-
-### Gunicorn Integration
-
-When running under Gunicorn, LifecycleLogging automatically detects and inherits Gunicorn's logger configuration:
-
-```python
-# The logger will automatically use Gunicorn's handlers if available
-logger = Logging(
-    enable_console=True,
-    enable_file=True
-)
-```
-
-## Development
-
+### Add org-specific Cursor rule
 ```bash
-# Install development dependencies
-pip install -e ".[dev,test,docs]"
-
-# Run tests
-make test
-
-# Run linting and type checks
-make check
-
-# Build documentation
-make docs
+echo "# My Org Rule" > repository-files/org-overrides/.cursor/rules/my-org.mdc
 ```
-
-## License
-
-MIT License - See [LICENSE](https://github.com/jbcom/lifecyclelogging/blob/main/LICENSE) for details.
-
----
-
-**Happy Logging!**
