@@ -71,9 +71,10 @@ jobs:
         if: steps.diff.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.CI_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           PR_NUM=${{ github.event.pull_request.number }}
-          TITLE="${{ github.event.pull_request.title }}"
+          TITLE="$PR_TITLE"
           
           # Check for existing review comment
           EXISTING=$(gh pr view $PR_NUM --json comments --jq '.comments[] | select(.body | contains("🤖 **Ecosystem Review**")) | .id' | head -1)
@@ -115,7 +116,7 @@ jobs:
           ISSUE_NUM: ${{ github.event.issue.number }}
           IS_PR: ${{ github.event.issue.pull_request != null }}
         run: |
-          TASK=$(echo "$COMMENT" | sed 's/@cascade//' | xargs)
+          TASK=$(echo "${COMMENT/@cascade/}" | xargs)
           
           # Determine optimal agent
           AGENT="manual"
@@ -169,7 +170,7 @@ jobs:
           ISSUE_NUM: ${{ github.event.issue.number }}
           COMMENT: ${{ github.event.comment.body }}
         run: |
-          TASK=$(echo "$COMMENT" | sed 's|/jules||' | xargs)
+          TASK=$(echo "${COMMENT//\/jules/}" | xargs)
           
           if [ -z "$GOOGLE_JULES_API_KEY" ]; then
             gh issue comment $ISSUE_NUM --body "⚠️ **Jules unavailable**
@@ -210,7 +211,7 @@ jobs:
           ISSUE_NUM: ${{ github.event.issue.number }}
           COMMENT: ${{ github.event.comment.body }}
         run: |
-          TASK=$(echo "$COMMENT" | sed 's|/cursor||' | xargs)
+          TASK=$(echo "${COMMENT//\/cursor/}" | xargs)
           
           if [ -z "$CURSOR_API_KEY" ]; then
             gh issue comment $ISSUE_NUM --body "⚠️ **Cursor unavailable**
@@ -239,13 +240,15 @@ jobs:
       github.event_name == 'issue_comment' &&
       contains(github.event.comment.body, '@claude')
     runs-on: ubuntu-latest
+    env:
+      HAS_ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           token: ${{ secrets.CI_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Claude Code
-        if: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+        if: env.HAS_ANTHROPIC_KEY == 'true'
         uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -253,7 +256,7 @@ jobs:
           allowed_bots: '*'
 
       - name: Claude unavailable
-        if: ${{ secrets.ANTHROPIC_API_KEY == '' }}
+        if: env.HAS_ANTHROPIC_KEY != 'true'
         env:
           GH_TOKEN: ${{ secrets.CI_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           ISSUE_NUM: ${{ github.event.issue.number }}
