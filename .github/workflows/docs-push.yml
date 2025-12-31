@@ -72,7 +72,7 @@ jobs:
       - name: Push to Docs Repo
         if: steps.check_docs.outputs.exists == 'true'
         env:
-          GH_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.CI_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           REPO_NAME=$(basename ${{ github.repository }})
           git clone https://x-access-token:${GH_TOKEN}@github.com/extended-data-library/extended-data-library.github.io.git /tmp/docs-repo
